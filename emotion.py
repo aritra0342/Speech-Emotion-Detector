@@ -8,9 +8,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 import sounddevice as sd
 
-# =========================
 # Step 1: Unzip dataset
-# =========================
+
 zip_path = "Emotion_1.zip"   # your dataset zip file
 extract_path = "Emotion_1"   # extraction folder
 
@@ -21,9 +20,8 @@ if not os.path.exists(extract_path):
 else:
     print("✅ Dataset already extracted.")
 
-# =========================
 # Step 2: Feature extraction (fixed size)
-# =========================
+
 def extract_features(file, max_pad_len=130):  
     """Extract MFCC features from audio file with fixed length"""
     try:
@@ -31,6 +29,7 @@ def extract_features(file, max_pad_len=130):
         mfccs = librosa.feature.mfcc(y=signal, sr=sr, n_mfcc=40)
 
         # Pad or truncate to ensure same length
+        
         if mfccs.shape[1] < max_pad_len:
             pad_width = max_pad_len - mfccs.shape[1]
             mfccs = np.pad(mfccs, pad_width=((0,0),(0,pad_width)), mode='constant')
@@ -42,10 +41,9 @@ def extract_features(file, max_pad_len=130):
         print("⚠️ Error processing", file, ":", e)
         return None
 
-# =========================
 # Step 3: Emotion label parser
 # (Assumes RAVDESS-style filenames: 03-01-05-01-02-02-12.wav)
-# =========================
+
 def get_emotion_from_filename(file):
     try:
         parts = file.split("-")
@@ -63,10 +61,9 @@ def get_emotion_from_filename(file):
         return mapping.get(emotion_id, "unknown")
     except:
         return "unknown"
-
-# =========================
+        
 # Step 4: Load dataset
-# =========================
+
 X, y = [], []
 for root, _, files in os.walk(extract_path):
     for file in files:
@@ -79,30 +76,26 @@ for root, _, files in os.walk(extract_path):
 
 print("✅ Total valid samples loaded:", len(X))
 
-# =========================
 # Step 5: Train/Test split
-# =========================
+
 if len(X) > 0:
     X = np.array(X)  # convert to 2D array
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    # =========================
     # Step 6: Train classifier
-    # =========================
+   
     model = MLPClassifier(hidden_layer_sizes=(300,), learning_rate='adaptive', max_iter=500)
     model.fit(X_train, y_train)
 
-    # =========================
     # Step 7: Evaluate
-    # =========================
+   
     y_pred = model.predict(X_test)
     print("🎯 Accuracy:", accuracy_score(y_test, y_pred))
 
-    # =========================
     # Step 8: Real-time mic test
-    # =========================
+  
     def record_and_predict(duration=3, sr=22050):
         print("\n🎤 Recording... Speak now!")
         audio = sd.rec(int(duration * sr), samplerate=sr, channels=1)
@@ -110,6 +103,7 @@ if len(X) > 0:
         print("✅ Recording complete")
 
         # Convert to 1D array
+        
         audio = audio.flatten()
 
         # Extract features
@@ -123,11 +117,14 @@ if len(X) > 0:
         features = np.mean(mfccs.T, axis=0).reshape(1, -1)
 
         # Predict
+        
         prediction = model.predict(features)
         print("🎯 Detected Emotion:", prediction[0])
 
     # Run once after training
+    
     record_and_predict(duration=3)
 
 else:
     print("⚠️ No audio samples found! Check dataset structure.")
+
